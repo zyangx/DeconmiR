@@ -1,0 +1,135 @@
+---
+title: "DeconmiR: Cell Type Deconvolution using miRNA Expression Profliling"
+author: "Zhen Yang"
+date: "`r Sys.Date()`"
+package: "`r pkg_ver('DeconmiR')`"
+
+output:
+  BiocStyle::html_document
+
+vignette: >
+  %\VignetteIndexEntry{DeconmiR-Cell Type Deconvolution using miRNA Expression Profliling}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# Introduction
+
+Biological tissues are often heterogeneous mixture of multiple cell types, with their cellular composition varies across different states or different individuals. This intra-sample heterogeneity could raise from physiological or functional activity changes of the samples and impose great challenges to omics study. This uncertainty in the source of data variation could lead to the decreased statistical power or even false for detecting significant associations. In addition, cell type composition also explains etiology of many diseases and  infer their pathological indications.
+
+Computational deconvolution of bulk omics data allows for infering cell type composition of heterogeneous biological samples. Deconvolution methods typically use genome wide gene expression or DNA methylation profiles, and present good proformance on cell type abundance quantification from whole blood, peripheral blood mononuclear cells or other complex tissues. However, attempts to resolve the  cell composition heterogeneity from **miRNomics** data remain limited.
+
+The **DeconmiR** package provides tools to infer the cell fractions a sample representing a mixture of such cell-types by using miRNA expression profling. Inference proceeds via one of 5 methods (Robust Partial Correlations-**RPC**, Support Vector Regression-**SVR**, Constrained Projection-**CP**, Non-Negative Least Squares-**NNLS**, Solution of Linear Equations-**SLE**), as determined by the user. For now, the package contains 4 references, including three whole blood subtypes reference and one reference for breast tissue. This package  provides a unified interface to rapidly run and benchmark multiple deconvolution methods for miRNA expression based deconvolution.
+
+# Estimte cell-type fractions using miRNA profiling data
+
+To show how to use this package, we used bulk miRNA-seq expression data of whole blood samples from 12 acute myeloid leukemia patients of TCGA (miRExpCount_LAML.m). which contains 1807 miRNAs, as well as the reference matrix for whole blood for demonstration.
+
+We first load **DeconmiR** package, the miRNA expression and the reference matrix data.
+```{r load, eval=TRUE, echo=T, message=FALSE, warning=FALSE}
+library(DeconmiR)
+data(miRExpCount_LAML.m)
+data(refMatrix_Blood1.m)
+
+```
+
+## miRNA expression count matrix
+A subset of the TCGA LAML whole blood miRNA-seq data, stored in `miRExpCount_LAML.m`, consists of a miRNA (rows) by sample (columns) matrix with reads count expression values:
+```{r }
+# print count values in bulk RNA-seq
+head(miRExpCount_LAML.m)
+```
+
+## Reference profiles
+We use the blood reference profile from isolated cell for 6 immune cell types. The blood reference profile, stored in `refMatrix_Blood1.m`, consists of a miRNA (rows) by cell type (columns) matrix containing log2-transformed reads-per-million-miRNA-mapped (RPM) expression values normalized for total miRNA abundance:
+```{r}
+# print log-transformed RPM values in reference profile matrix
+head(refMatrix_Blood1.m)
+```
+
+## miRNA expression data normalization
+Before the deconvolution procedure, the raw reads count data need to be normalized to RPM value, which is achieved by the `getRPM` function. DeconmiR requires a log-transformation to estimate the cell type proportions, which is achieved by "logNormalize" function.
+```{r}
+# normalize the read count matrix to RPM value
+miRexpRPM_LAML.m <- getRPM(miRExpCount_LAML.m)
+# log-transformation of RPM value
+miRexpNorm_LAML.m <- logNormalize(miRexpRPM_LAML.m)
+head(miRexpNorm_LAML.m)
+```
+
+Notice that miRNA expression data based on different platforms such as microrray also can be used for cell type deconvolution. In quality control step of microarry data preprocessing, the miRNA IDs need to be converted to that from miRBase v21, which can be achieved by the "ID converter" tool within our previously established on-line tool dbDEMC v3.0 (https://www.biosino.org/dbDEMC/idConvertor), the missing values need to be imputed and filled. we also suggest to do the quantile normalization for the log-transformed expression value, which can be achieved by adding the quantile parameter `("quantile = TRUE")` for the `logNormalize` function. 
+
+## Cell type esitmation
+Now we show an example of using our package to estimate cell-type fractions of whole blood tissues. We go ahead and use *DeconmiR* function with *RPC* mode to infer the cell-type fractions. 
+```{r}
+est.o <- DeconmiR(miRexpNorm_LAML.m, refMatrix_Blood1.m, method = 'RPC')
+
+```
+
+Then, we check the output object: *estF* is the matrix of estimated cell-type fractions. *ref* is the reference matrix used, and *dataREF* is the subset of the input data matrix over the miRNAs defined in the reference matrix.
+```{r}
+est.o$estF
+dim(est.o$ref)
+dim(est.o$dataREF)
+```
+We can  check the inferred celltype fractions with boxplots. 
+```{r}
+library(ggplot2)
+library(reshape2)
+
+BloodFrac.m <- est.o$estF
+cellfrac.df <- melt(BloodFrac.m)
+colnames(cellfrac.df ) <- c("Sample", "CellType", "Frac")
+
+p <- ggplot(data = cellfrac.df , aes(x = CellType, y=Frac, fill =CellType)) + geom_boxplot(outlier.size=0.5) + labs(x=NULL, y='Fraction') + theme(axis.text.x =element_text(size =10,color="black"), axis.text.y = element_text(size =10,color="black"), axis.title.y = element_text(size =14,color="black"), plot.title=element_text(hjust=0.5, size=12), legend.position='none') + theme_bw() 
+p
+```
+
+From the boxplots, we observe that the major cell types in whole blood are CD4+ T cell and neutrophil. Additionally, we also provide a set of blood reference profile matrices stored in `inrefMatrix_Blood0.m` and `refMatrix_Blood2.m`, which were derived by different method over similar cell types.
+
+# Estimte cell-type fractions for breast tissue
+we also constructed a reference matrix of `refMatrix_Breast.m` for cell type deconvolution of miRNA expression profliling from breast tissue, which containing 10 cell types of epithelial, fibroblast, adipocyte and 7 immune cells including macrophage and ther other immune cells. To demonstrate and validate our method in breast tissue, we collected bulk miRNA-seq expression data of 6 breast cancer samples and paired normal samples TCGA (miRExpCount_Breast.m). Again, we use similiar procedure for data normalization and cell type deconvolution, but with "SVR" mode used instead.
+```{r}
+data(miRExpCount_BRCA.m)
+data(refMatrix_Breast.m)
+miRexpRPM_BRCA.m <- getRPM(miRExpCount_BRCA.m)
+miRexpNorm_BRCA.m <- logNormalize(miRexpRPM_BRCA.m)
+est.o <- DeconmiR(miRexpNorm_BRCA.m, refMatrix_Breast.m, method = 'SVR')
+cellfrac.m <- est.o $estF
+cellfrac.m
+```
+We can plot the estimated cell type proportions by using the stacked barchart.
+```{r, fig.retina = 1}
+# plot cell type proportions for "SVR" mode 
+cellfrac.df <- melt(cellfrac.m)
+colnames(cellfrac.df) <- c("Sample", "CellType", "Frac")
+p <- ggplot(data = cellfrac.df , aes(x = Sample, y=Frac, fill =CellType))+geom_bar(stat = 'identity', position = 'fill')+labs(x = 'Sample', y='Fraction') +theme_bw() + theme(axis.text.x = element_text(size =10, color="black", angle=30, vjust = 0.90, hjust = 0.95), axis.title.y = element_text(size =10,color="black"), plot.title=element_text(hjust=0.5, size=12), legend.title=element_text( size=10), legend.text=element_text( size=12)) 
+p
+```
+We can observe that the fibroblast constituses major cell types in breast tissues, whereas the monocyte is missing. Then we compare the cell type fraction difference in Cancer and Normal samples by using boxplot.
+```{r}
+# 6 Cancer samples and 6 Normal samples
+samplelabel.v <- substr(cellfrac.df[,1], 14, 15)
+sampleType.v <- ifelse(samplelabel.v == "01", "Cancer", "Normal")
+cellfrac.df <- cbind(cellfrac.df, sampleType.v)
+colnames(cellfrac.df)[4] <- c("SampleType")
+head(cellfrac.df)
+p <- ggplot(data = cellfrac.df , aes(x=SampleType, y=Frac, fill=SampleType)) + geom_boxplot() +  facet_wrap(cellfrac.df$CellType) + theme_bw() + theme(legend.position='none')
+p
+```
+
+Even though the fraction of each immune cell type was very low in these samples, we could still see the subtle differences in immune infiltration between Cancer vs. Normal samples, particularly the macrophage. This was just an example case study by using few samples, and our methods can be used in a broad variety of applications.
+
+# Note
+A variety of transcriptome or DNA methylome based cell-type deconvolution methods are now available for cell proportion quantification, whereas deconvolution methods using miRNA profiling data still remains unavailable. The DeconmiR package provides an unified and easy-to-use interface towards this aim. Different with many transcriptome data based deconvolution methods, which usually require non-logtransformed data being used, we found that the accurate deconvolution can only be achieved in logarithmic scaling when deconvolving miRNA expression profiles, probably because the inflated nature of RPM value leads to the extremely high noise level, outliers and abnormal distribution of the profiling data greatly affect the deconvolution performance.
+
+As indicated previously, DeconmiR comes along with four sets of predefined miRNA reference profiles, but it can be run with any user-defined reference profile describing the cells of interest. Users may build their own reference profiles and use them with the package when studying other tissues or to do the deconvolution in other organisms, as long as to follow the format needed for such a user-defined reference profile. We will also further explore different models, and to construct reference profiles for different tissues and even different organisms, so as to achieve a wider application of this tool.
+
+# Session Info
+
+```{r}
+# print session info
+sessionInfo()
+```
+

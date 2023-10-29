@@ -1,0 +1,30 @@
+Package: DeconmiR
+Title: Cell Type Deconvolution using miRNA Expression Profliling
+Version: 0.0.0.9000
+Authors@R: 
+    c(person(given  = "Zhen",
+             family = "Yang",
+             email  = "zhenyang@fudan.edu.cn",
+             role   = c("aut", "cre")),
+      person(given  = "Andrew E.",
+             family = "Teschendorff",
+             email  = "andrew@picb.ac.cn",
+             role   = c("aut")))
+Description: DeconmiR is a R package to for the cell type deconvolution of 
+      heterogeneous tissues representing a mixture of such cell-types based on 
+      miRNA-seq data or microarray expression profiles. Right now, the package 
+      can be used on miRNA expression of whole blood and breast tissue. This 
+      package provides a unified testing interface to rapidly run multiple 
+      state-of-the-art deconvolution methods. 
+Depends: R (>= 4.1)
+Imports: MASS, e1071, quadprog, nnls, limma, ggplot2, reshape2
+VignetteBuilder: knitr
+Suggests: knitr, rmarkdown
+License: GPL-2
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+LazyData: true
+RoxygenNote: 7.2.3
+Author: Zhen Yang [aut, cre],
+        Andrew E. Teschendorff [aut]
+Maintainer: Zhen Yang <zhenyang@fudan.edu.cn>
