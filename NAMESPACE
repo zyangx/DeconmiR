@@ -2,6 +2,7 @@
 
 export(DeconmiR)
 export(getRPM)
+export(hDeconmiR)
 export(logNormalize)
 importFrom(MASS,rlm)
 importFrom(e1071,svm)

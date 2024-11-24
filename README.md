@@ -1,13 +1,13 @@
 
 # DeconmiR
-##Cell Type Deconvolution using miRNA Expression Profiling"
+##Cell Type Deconvolution using miRNA Expression Profliling
 
 ================
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The **DeconmiR** package provides tools to infer the cell fractions a sample representing a mixture of such cell-types by using miRNA expression profiling. Inference proceeds via one of 5 methods (Robust Partial Correlations-**RPC**, Support Vector Regression-**SVR**, Constrained Projection-**CP**, Non-Negative Least Squares-**NNLS**, Solution of Linear Equations-**SLE**), as determined by the user. For now, the package contains 4 references, including three whole blood subtypes reference and one reference for breast tissue. This package  provides a unified interface to rapidly run and benchmark multiple deconvolution methods for miRNA expression based deconvolution.
+The **DeconmiR** package provides tools to infer the cell fractions a sample representing a mixture of such cell-types by using miRNA expression profiling. Inference proceeds via one of 5 methods (Robust Partial Correlations-**RPC**, Support Vector Regression-**SVR**, Constrained Projection-**CP**, Non-Negative Least Squares-**NNLS**, Solution of Linear Equations-**SLE**), as determined by the user. For now, the package contains three references for whole blood tissue and nine references for solid tissues, including breast, lung, liver, kidney, prostate, esophagus, respiratory tract, vessel and skin. In addition, it also provides a generic reference which was used for cell type deconvolution of any solid tissue. This package provides a unified interface to rapidly run and benchmark multiple deconvolution methods for miRNA expression based deconvolution.
 
 ## Installation
 
@@ -18,8 +18,7 @@ devtools::install_github("zyangx/DeconmiR")
 ```
 
 ## Example
-
-This is a basic example which shows you how to estimate cell proportions from miRNA profiling:
+We show an example of using this package to estimate immune cell-type fractions in adult whole blood.
 
 ``` r
 library(DeconmiR)
@@ -34,5 +33,4 @@ BloodFrac.m <- est.o$estF
 BloodFrac.m 
 ```
 
-Detailed example for package usage can be seen in the vignettes.
-
+DeconmiR also provides functions for cell type deconvolutions of solid tissues. The detailed example for package usage can be seen in the vignettes.
